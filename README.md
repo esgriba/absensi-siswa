@@ -16,6 +16,7 @@ Aplikasi web modern untuk mengelola absensi siswa menggunakan teknologi QR code 
 - **Frontend**: Next.js 15, TypeScript, Tailwind CSS
 - **Backend**: Supabase (PostgreSQL, Auth, Real-time)
 - **QR Scanner**: qr-scanner library
+- **QR Generator**: qrcode library (untuk generate QR code images)
 - **State Management**: Zustand
 - **Icons**: Lucide React
 - **Notifications**: React Hot Toast
@@ -160,13 +161,19 @@ src/
 - Isi form dengan data siswa
 - QR code akan di-generate otomatis
 
-### 2. Melakukan Absensi
+### 2. Download QR Code Siswa
+- Di halaman "Data Siswa", setiap siswa memiliki 2 opsi download:
+  - **QR Code Icon** (hijau): Download QR code saja sebagai file PNG
+  - **Card Icon** (biru): Download kartu siswa lengkap dengan info dan QR code
+- File akan otomatis terdownload dengan nama yang sesuai
+
+### 3. Melakukan Absensi
 - Buka tab "Scanner QR"
 - Klik "Start Scanner" 
 - Arahkan kamera ke QR code siswa
 - Sistem akan otomatis mencatat kehadiran
 
-### 3. Monitoring Dashboard
+### 4. Monitoring Dashboard
 - Buka tab "Dashboard"
 - Lihat statistik kehadiran real-time
 - Monitor absensi siswa hari ini

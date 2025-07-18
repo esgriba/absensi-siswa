@@ -5,6 +5,8 @@ import { Student } from '@/types'
 import { AttendanceService } from '@/services/attendance'
 import { useAttendanceStore } from '@/store/attendance'
 import { QRScannerService } from '@/lib/qr-scanner'
+import { QRCodeGenerator } from '@/lib/qr-generator'
+import { toast } from 'react-hot-toast'
 import { 
   Users, 
   Plus, 
@@ -14,7 +16,8 @@ import {
   Search, 
   Filter,
   Download,
-  Upload
+  Upload,
+  CreditCard
 } from 'lucide-react'
 
 interface StudentModalProps {
@@ -49,13 +52,6 @@ function StudentModal({ student, isOpen, onClose, onSave }: StudentModalProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
-    // Generate QR code if creating new student
-    if (!student) {
-      const qrData = QRScannerService.generateStudentQRCode(formData.student_id!)
-      formData.qr_code = qrData
-    }
-    
     onSave(formData)
     onClose()
   }
@@ -225,12 +221,26 @@ export default function StudentManagement() {
         // Update existing student
         await AttendanceService.updateStudent(editingStudent.id, studentData)
       } else {
-        // Create new student
-        await AttendanceService.createStudent(studentData as Omit<Student, 'id' | 'created_at' | 'updated_at'>)
+        // Create new student - generate QR code data
+        const qrData = QRCodeGenerator.generateStudentQRData({
+          id: studentData.student_id!, // Use student_id as temporary ID for QR generation
+          student_id: studentData.student_id!,
+          name: studentData.name!,
+          class: studentData.class!
+        })
+        
+        const newStudentData = {
+          ...studentData,
+          qr_code: qrData
+        }
+        
+        await AttendanceService.createStudent(newStudentData as Omit<Student, 'id' | 'created_at' | 'updated_at'>)
       }
       loadStudents()
+      toast.success(editingStudent ? 'Siswa berhasil diupdate!' : 'Siswa berhasil ditambahkan!')
     } catch (error) {
       console.error('Failed to save student:', error)
+      toast.error('Gagal menyimpan data siswa')
     }
   }
 
@@ -245,16 +255,24 @@ export default function StudentManagement() {
     }
   }
 
-  const generateQRCode = (student: Student) => {
-    // This would typically generate a downloadable QR code
-    const qrData = student.qr_code
-    const blob = new Blob([qrData], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `qr_${student.name}_${student.student_id}.txt`
-    a.click()
-    URL.revokeObjectURL(url)
+  const generateQRCode = async (student: Student) => {
+    try {
+      await QRCodeGenerator.downloadStudentQRCode(student)
+      toast.success(`QR Code untuk ${student.name} berhasil didownload!`)
+    } catch (error) {
+      console.error('Failed to generate QR code:', error)
+      toast.error('Gagal generate QR Code')
+    }
+  }
+
+  const generateStudentCard = async (student: Student) => {
+    try {
+      await QRCodeGenerator.downloadStudentCard(student)
+      toast.success(`Kartu siswa untuk ${student.name} berhasil didownload!`)
+    } catch (error) {
+      console.error('Failed to generate student card:', error)
+      toast.error('Gagal generate kartu siswa')
+    }
   }
 
   const uniqueClasses = Array.from(new Set(students.map(s => s.class))).sort()
@@ -363,6 +381,14 @@ export default function StudentManagement() {
                   title="Download QR Code"
                 >
                   <QrCode className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => generateStudentCard(student)}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                  title="Download Kartu Siswa"
+                >
+                  <CreditCard className="w-4 h-4" />
                 </button>
                 
                 <button
